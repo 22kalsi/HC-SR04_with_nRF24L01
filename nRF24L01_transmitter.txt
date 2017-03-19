@@ -1,0 +1,45 @@
+// ---------------------------------------------------------------------------
+// Template sketch for nRF24L01 wireless tranmitter, here an example is made for
+// using the HC-SR04 ultrasonic vicinity sensor
+// By Dongchi Yu 3/19/2017
+// ---------------------------------------------------------------------------
+
+#include <NewPing.h>
+#include <SPI.h>
+#include "nRF24L01.h"
+#include "RF24.h"
+#define MAX_DISTANCE 200 // Maximum distance (in cm) to ping.
+#define LED_PIN 13    // LED pins for indicating activity
+//  Initiate radio 
+RF24 radio(9, 10);
+
+// Define HC-SR04 ultrasonic devices using NewPing library
+NewPing sonar1(2,3,MAX_DISTANCE)  ;// Device for measurement taking pin 2 and 3 (trigger and echo)
+NewPing sonar2(4,5,MAX_DISTANCE) ; // Device for detecting bow-passing taking pin 4 and 5
+unsigned int time_echo[2];  // Echo time recorded, define a 2-element array for stoaring the measurements
+bool blinkState = false;	// set LED pin to blink
+void setup() {  
+  radio.begin();
+  radio.setRetries(20, 20);
+  radio.setChannel(108);  // Channel set above most Wifi Channels
+  radio.setPayloadSize(8);
+  radio.openWritingPipe(0xF0F0F0F0B1LL);
+  radio.stopListening();
+  Serial.begin(115200); // Open serial monitor at 115200 baud to see ping results.
+  pinMode(LED_PIN, OUTPUT);  
+}
+
+// Loop starts for measuring data and transmitting them via radio
+void loop() {
+  delay(20);   // Wait 20ms between pings (about 50 pings/sec). 29ms should be the shortest delay between pings.
+  // Send ping, get distance in cm and print result (0 = outside set distance range)
+  time_echo[0] = sonar1.ping();
+  time_echo[1] = sonar2.ping();
+  radio.write(&time_echo, sizeof(time_echo));
+  Serial.print(time_echo[0]);
+  Serial.print(time_echo[1]); 
+  Serial.println();
+  // blink LED to indicate activity
+  blinkState = !blinkState;
+  digitalWrite(LED_PIN, blinkState);  // Blink LED for indicating activity
+}

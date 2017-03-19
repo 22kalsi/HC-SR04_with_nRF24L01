@@ -1,0 +1,56 @@
+// ---------------------------------------------------------------------------
+// Arduino sketch for nRF24L01 receiver
+// By Dongchi Yu 3/19/2017
+// Simple receiving set-up by nR24L01 devices, with pipe detection and pin 13 as output on Arduino
+// ---------------------------------------------------------------------------
+#include <SPI.h>
+#include "nRF24L01.h"
+#include "RF24.h"
+
+RF24 radio(9, 10);
+
+unsigned long t0;
+unsigned long t1;
+
+void setup()
+{
+  pinMode(13,OUTPUT); // pin 13 is chosen as the output of the signals
+  
+  while (!Serial);
+  Serial.begin(115200); // set baud rate
+  
+  // Radio set-up
+  radio.begin();
+  radio.setChannel(108);  // The channel is set above most Wifi Channels
+  radio.setPALevel(RF24_PA_MIN); // set lower radio power
+  radio.setPayloadSize(8);
+  radio.openReadingPipe(1, 0xF0F0F0F0B1LL);// can be changed accordingly to incorporate other devices, 
+  radio.startListening();
+  t0 = 0;
+}
+
+byte pipeNum = 0; //variable to hold which reading pipe sent data
+
+void loop()
+{  
+  t1 = millis();	// Time stamping
+  if (t1 - t0 > 50){	// Start the loop with 50ms delay ahead
+  if (radio.available(&pipeNum))
+  //if (pipeNum == 1) // read data from pipe 1 - the data of sensor 1
+  {	
+  
+	// -----------  Define what you are expecting from the transmitter side ------//
+    unsigned int time_echo[2];  // Echo time recorded    
+	// ---------------------------------------------------------------------------//	
+	
+	//	Print out the received data in columns
+    radio.read(&time_echo, sizeof(time_echo));
+    Serial.print(time_echo[0]);
+    Serial.print("\t");
+    Serial.print(time_echo[1]); 
+    Serial.println();
+    t0=t1;
+    
+  }
+  }
+}
